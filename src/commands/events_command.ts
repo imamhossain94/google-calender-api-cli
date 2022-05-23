@@ -12,7 +12,6 @@ export const EventsCommand: CommandModule = {
   builder: {},
   handler: async () => {
 
-    console.log("funcikk");
     let credentials: Auth.Credentials;
     const oauth2Client = makeOAuth2Client();
 

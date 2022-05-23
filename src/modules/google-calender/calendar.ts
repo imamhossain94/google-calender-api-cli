@@ -10,11 +10,16 @@ import setHours from 'date-fns/set_hours';
 import setMinutes from 'date-fns/set_minutes';
 import setSeconds from 'date-fns/set_seconds';
 import addDays from 'date-fns/add_days';
+import { ParseResult } from '../../commands/insert_event_command';
+import { format } from 'date-fns';
 
 export interface ListEventOptions {
   timeMin?: Date;
   timeMax?: Date;
 }
+
+const INSERT_DATE_FORMAT = "YYYY-MM-DD";
+const INSERT_DATETIME_FORMAT = "YYYY-MM-DDTHH:mm:ss.SSSZ";
 
 export async function makeCalendarClient(oauth2Client: OAuth2Client) {
 
@@ -102,6 +107,52 @@ export const listEvents = async (
     return gCalEvents;
   } catch (e) {
     console.log(`calendarId(${calendarId}) has error`, e);
+    throw e;
+  }
+};
+
+
+export const insertEvent = (calendarClient: calendar_v3.Calendar) => (
+  options: ParseResult
+) => async (calendarId: string = "primary") => {
+
+  const { title, start, end, isAllDay } = options;
+  
+  let event: any = {
+    summary: title,
+  };
+  
+  if (isAllDay) {
+    event = {
+      ...event,
+      start: {
+        date: format(start, INSERT_DATE_FORMAT),
+      },
+      end: {
+        date: format(end, INSERT_DATE_FORMAT),
+      },
+    };
+  } else {
+    event = {
+      ...event,
+      start: {
+        dateTime: format(start, INSERT_DATETIME_FORMAT),
+      },
+      end: {
+        dateTime: format(end, INSERT_DATETIME_FORMAT),
+      },
+    };
+  }
+  let params: any = {
+    calendarId: calendarId,
+    resource: event,
+  };
+  try {
+    const { data } = await calendarClient.events.insert(params);
+    const gCalEvents = GCalEvent.gen(data);
+    return gCalEvents;
+  } catch (e) {
+    console.log(`calendarId(${calendarId}) insert event error occured`, e);
     throw e;
   }
 };
